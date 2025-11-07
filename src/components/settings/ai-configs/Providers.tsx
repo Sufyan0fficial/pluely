@@ -3,6 +3,7 @@ import { UseSettingsReturn } from "@/types";
 import curl2Json, { ResultJSON } from "@bany/curl-to-json";
 import { KeyIcon, TrashIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getModelsForProvider, AI_MODELS } from "@/lib/functions";
 
 export const Providers = ({
   allAiProviders,
@@ -37,6 +38,13 @@ export const Providers = ({
 
   const isApiKeyEmpty = () => {
     return !getApiKeyValue().trim();
+  };
+
+  const getAvailableModels = () => {
+    if (!selectedAIProvider?.provider) return [];
+    const models = getModelsForProvider(selectedAIProvider.provider);
+    console.log('Available models for', selectedAIProvider.provider, ':', models);
+    return models;
   };
 
   return (
@@ -184,11 +192,17 @@ export const Providers = ({
               return selectedAIProvider.variables[variable.key] || "";
             };
 
+            const isModelField = variable?.key === "model";
+            const availableModels = getAvailableModels();
+            const showModelDropdown = isModelField && availableModels.length > 0;
+            
+            console.log('Variable:', variable?.key, 'isModelField:', isModelField, 'availableModels:', availableModels, 'showModelDropdown:', showModelDropdown);
+
             return (
               <div className="space-y-1" key={variable?.key}>
                 <Header
                   title={variable?.value || ""}
-                  description={`add your preferred ${variable?.key?.replace(
+                  description={`${showModelDropdown ? 'Select' : 'Add'} your preferred ${variable?.key?.replace(
                     /_/g,
                     " "
                   )} for ${
@@ -199,27 +213,50 @@ export const Providers = ({
                       : selectedAIProvider?.provider
                   }`}
                 />
-                <TextInput
-                  placeholder={`Enter ${
-                    allAiProviders?.find(
-                      (p) => p?.id === selectedAIProvider?.provider
-                    )?.isCustom
-                      ? "Custom Provider"
-                      : selectedAIProvider?.provider
-                  } ${variable?.key?.replace(/_/g, " ") || "value"}`}
-                  value={getVariableValue()}
-                  onChange={(value) => {
-                    if (!variable?.key || !selectedAIProvider) return;
+                
+                {showModelDropdown ? (
+                  <Selection
+                    selected={getVariableValue()}
+                    options={availableModels.map(model => ({
+                      label: model,
+                      value: model
+                    }))}
+                    placeholder={`Select ${selectedAIProvider?.provider} model`}
+                    onChange={(value) => {
+                      if (!variable?.key || !selectedAIProvider) return;
 
-                    onSetSelectedAIProvider({
-                      ...selectedAIProvider,
-                      variables: {
-                        ...selectedAIProvider.variables,
-                        [variable.key]: value,
-                      },
-                    });
-                  }}
-                />
+                      onSetSelectedAIProvider({
+                        ...selectedAIProvider,
+                        variables: {
+                          ...selectedAIProvider.variables,
+                          [variable.key]: value,
+                        },
+                      });
+                    }}
+                  />
+                ) : (
+                  <TextInput
+                    placeholder={`Enter ${
+                      allAiProviders?.find(
+                        (p) => p?.id === selectedAIProvider?.provider
+                      )?.isCustom
+                        ? "Custom Provider"
+                        : selectedAIProvider?.provider
+                    } ${variable?.key?.replace(/_/g, " ") || "value"}`}
+                    value={getVariableValue()}
+                    onChange={(value) => {
+                      if (!variable?.key || !selectedAIProvider) return;
+
+                      onSetSelectedAIProvider({
+                        ...selectedAIProvider,
+                        variables: {
+                          ...selectedAIProvider.variables,
+                          [variable.key]: value,
+                        },
+                      });
+                    }}
+                  />
+                )}
               </div>
             );
           })}

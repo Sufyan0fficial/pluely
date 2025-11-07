@@ -41,15 +41,18 @@ export const AI_PROVIDERS = [
   },
   {
     id: "gemini",
-    curl: `curl "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" \\
-  -H "Authorization: Bearer {{API_KEY}}" \\
+    curl: `curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/{{MODEL}}:generateContent" \\
   -H "Content-Type: application/json" \\
+  -H "x-goog-api-key: {{API_KEY}}" \\
   -d '{
-    "model": "{{MODEL}}",
-    "messages": [{"role": "system", "content": "{{SYSTEM_PROMPT}}"}, {"role": "user", "content": [{"type": "text", "text": "{{TEXT}}"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64,{{IMAGE}}"}}]}]
-  }'}`,
-    responseContentPath: "choices[0].message.content",
-    streaming: true,
+    "contents": [{
+      "parts": [
+        {"text": "{{SYSTEM_PROMPT}}\\n\\n{{USER_MESSAGE}}"}
+      ]
+    }]
+  }'`,
+    responseContentPath: "candidates[0].content.parts[0].text",
+    streaming: false,
   },
   {
     id: "mistral",

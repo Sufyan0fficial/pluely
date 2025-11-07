@@ -220,7 +220,7 @@ export async function* fetchAIResponse(params: {
       ["messages", "contents", "conversation", "history"].includes(key)
     );
 
-    if (messagesKey && Array.isArray(bodyObj[messagesKey])) {
+    if (messagesKey && Array.isArray(bodyObj[messagesKey]) && selectedProvider.provider !== 'gemini') {
       const finalMessages = buildDynamicMessages(
         bodyObj[messagesKey],
         history,
@@ -239,11 +239,23 @@ export async function* fetchAIResponse(params: {
       ),
       SYSTEM_PROMPT: systemPrompt || "",
     };
-
+    // Add missing TEXT and IMAGE variables
+    allVariables.TEXT = userMessage || "";
+    allVariables.USER_MESSAGE = userMessage || "";
+    allVariables.IMAGE = imagesBase64?.[0] || "";
+    
+    console.log('All variables:', allVariables);
+    console.log('Selected provider variables:', selectedProvider.variables);
+    console.log('Original curlJson.url:', curlJson.url);
     bodyObj = deepVariableReplacer(bodyObj, allVariables);
     let url = deepVariableReplacer(curlJson.url || "", allVariables);
-
-    const headers = deepVariableReplacer(curlJson.header || {}, allVariables);
+    
+    // Fix URL-encoded placeholders
+    url = decodeURIComponent(url);
+    url = deepVariableReplacer(url, allVariables);
+    
+    console.log('Final URL:', url);
+    console.log('Request body:', bodyObj);    const headers = deepVariableReplacer(curlJson.header || {}, allVariables);
     headers["Content-Type"] = "application/json";
 
     if (provider?.streaming) {
